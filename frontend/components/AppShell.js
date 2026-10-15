@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { api } from '@/lib/api';
 import Logo from './Logo';
 import Decor from './Decor';
+import { ToastProvider } from './Toast';
 
 const SessionContext = createContext(null);
 
@@ -17,6 +18,7 @@ export function useSession() {
 const NAV = [
   { href: '/dashboard', label: 'ย่อลิงก์' },
   { href: '/links', label: 'ลิงก์ของฉัน' },
+  { href: '/stats', label: 'สถิติ' },
 ];
 
 // Logged-in frame shared by /dashboard and /links: header, navigation and the session check.
@@ -51,7 +53,7 @@ export default function AppShell({ children }) {
   return (
     <div className="flex flex-1 flex-col lg:h-[calc(100dvh-4px)] lg:flex-none lg:overflow-hidden">
       <Decor />
-      <header className="shrink-0 bg-white/95 shadow-sm">
+      <header className="sticky top-0 z-40 shrink-0 bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:flex-nowrap sm:px-6">
           <Logo href="/dashboard" />
           <nav className="order-last flex w-full items-center justify-center gap-8 border-t border-neutral-100 pt-2 font-semibold sm:order-none sm:w-auto sm:border-0 sm:pt-0">
@@ -72,7 +74,9 @@ export default function AppShell({ children }) {
           </div>
         </div>
       </header>
-      <SessionContext.Provider value={{ user, handleSessionError }}>{children}</SessionContext.Provider>
+      <SessionContext.Provider value={{ user, handleSessionError }}>
+        <ToastProvider>{children}</ToastProvider>
+      </SessionContext.Provider>
     </div>
   );
 }

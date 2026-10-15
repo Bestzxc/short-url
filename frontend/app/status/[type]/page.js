@@ -21,7 +21,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const { type } = await params;
-  return { title: `${STATUSES[type]?.title ?? 'ไม่พบหน้า'} – Short URL` };
+  return { title: `${STATUSES[type]?.title ?? 'ไม่พบหน้า'} – ZipLink` };
 }
 
 export default async function StatusPage({ params }) {

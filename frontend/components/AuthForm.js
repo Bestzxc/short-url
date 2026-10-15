@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import Logo from './Logo';
 import Decor from './Decor';
 import FieldError, { INVALID } from './FieldError';
+import { PASSWORD_TOO_LONG, passwordTooLong } from '@/lib/password';
 
 const COPY = {
   login: {
@@ -44,7 +45,7 @@ function validate(mode, email, password) {
 
   if (!password) errors.password = 'กรุณากรอกรหัสผ่าน';
   else if (mode === 'register' && password.length < 8) errors.password = 'รหัสผ่านสั้นเกินไป ต้องมีอย่างน้อย 8 ตัวอักษร';
-  else if (password.length > 72) errors.password = 'รหัสผ่านยาวเกินไป ต้องไม่เกิน 72 ตัวอักษร';
+  else if (passwordTooLong(password)) errors.password = PASSWORD_TOO_LONG;
   return errors;
 }
 
@@ -141,7 +142,11 @@ export default function AuthForm({ mode }) {
                 type="password"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 value={password}
-                onChange={(e) => updateField('password', e.target.value, setPassword)}
+                onChange={(e) => {
+                  // Refuse input past the 72-byte limit instead of silently accepting it
+                  if (passwordTooLong(e.target.value)) setFieldErrors((prev) => ({ ...prev, password: PASSWORD_TOO_LONG }));
+                  else updateField('password', e.target.value, setPassword);
+                }}
                 aria-invalid={Boolean(fieldErrors.password)}
                 aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                 className={`input ${fieldErrors.password ? INVALID : ''}`}

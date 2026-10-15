@@ -1,9 +1,27 @@
 'use client';
 
+import { useState } from 'react';
 import Modal from './Modal';
+import { CopyIcon } from './icons';
 
 export default function QrModal({ link, onClose }) {
   const src = `/api/links/${link.linkId}/qr`;
+  const [copyState, setCopyState] = useState('idle'); // idle | copied | failed
+
+  // Puts the PNG itself on the clipboard (paste it into chat, docs, slides…). Needs https or localhost.
+  async function copyImage() {
+    try {
+      const png = fetch(src).then((res) => {
+        if (!res.ok) throw new Error('qr');
+        return res.blob();
+      });
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+    setTimeout(() => setCopyState('idle'), 2000);
+  }
 
   return (
     <Modal title="QR Code" onClose={onClose}>
@@ -14,9 +32,15 @@ export default function QrModal({ link, onClose }) {
         </div>
         <p className="mt-4 break-all text-center font-medium text-brand">{link.shortUrl}</p>
         <p className="mt-1 text-center text-sm text-neutral-500">สแกนแล้วจะเปิดไปที่ URL ต้นฉบับ</p>
-        <a href={`${src}?download=1`} download={`qr-${link.shortCode}.png`} className="btn btn-primary mt-6 px-8 py-3">
-          ดาวน์โหลด PNG
-        </a>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={copyImage} className="btn btn-outline gap-2 px-6 py-3">
+            {copyState === 'idle' && <CopyIcon />}
+            {copyState === 'copied' ? 'คัดลอกรูปแล้ว ✓' : copyState === 'failed' ? 'คัดลอกไม่สำเร็จ' : 'คัดลอกรูป'}
+          </button>
+          <a href={`${src}?download=1`} download={`qr-${link.shortCode}.png`} className="btn btn-primary px-8 py-3">
+            ดาวน์โหลด PNG
+          </a>
+        </div>
       </div>
     </Modal>
   );

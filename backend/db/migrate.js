@@ -13,6 +13,15 @@ async function main() {
   });
   try {
     await conn.query(sql);
+
+    // CREATE TABLE IF NOT EXISTS does not touch existing tables, so add columns introduced later
+    const [titleColumn] = await conn.query(
+      "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'links' AND COLUMN_NAME = 'title'",
+    );
+    if (titleColumn.length === 0) {
+      await conn.query('ALTER TABLE links ADD COLUMN title VARCHAR(100) NULL AFTER user_id');
+      console.log('Added links.title');
+    }
     console.log('Schema applied');
   } finally {
     await conn.end();

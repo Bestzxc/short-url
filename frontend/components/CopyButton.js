@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CopyIcon } from './icons';
 
 export default function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -16,7 +17,8 @@ export default function CopyButton({ text }) {
   }
 
   return (
-    <button onClick={copy} className="btn btn-dark btn-sm">
+    <button onClick={copy} className="btn btn-dark btn-sm gap-2">
+      {!copied && <CopyIcon />}
       {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอก'}
     </button>
   );
