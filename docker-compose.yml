@@ -1,0 +1,67 @@
+# Run everything with: docker compose up --build
+#   frontend  http://localhost:3000   (open this one)
+#   backend   http://localhost:4000   (short links are served from here)
+#   mysql     localhost:3307          (optional: for a SQL client)
+#   phpmyadmin http://localhost:8080  (database viewer)
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: short_url
+      TZ: UTC
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      # Tables are created automatically the first time the database starts
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Web page for browsing the database: http://localhost:8080 (development only)
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+    ports:
+      - "8080:80"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://root:rootpassword@db:3306/short_url
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      FRONTEND_URL: http://localhost:3000
+      PUBLIC_BASE_URL: http://localhost:4000
+      PORT: 4000
+      COOKIE_SECURE: "false"  # plain http on localhost
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Where the Next.js server forwards /api/* (the backend's address inside Docker)
+        API_URL: http://backend:4000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:

@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Red / black / white theme with heavy headings and pill buttons */
+@theme inline {
+  --font-sans: var(--font-kanit), ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #e3242b;
+  --color-brand-dark: #c11b21;
+  --color-brand-soft: #fdecec;
+  --color-ink: #141414;
+  --color-paper: #f2f2f2;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-weight: 300;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply bg-brand text-white shadow-sm shadow-brand/20 hover:bg-brand-dark;
+  }
+  .btn-dark {
+    @apply bg-ink text-white hover:bg-black;
+  }
+  .btn-outline {
+    @apply bg-white text-ink ring-1 ring-neutral-300 hover:ring-ink;
+  }
+  .btn-danger {
+    @apply bg-white text-brand ring-1 ring-brand/30 hover:bg-brand-soft;
+  }
+  .btn-sm {
+    @apply px-4 py-1.5 text-sm;
+  }
+  .input {
+    @apply w-full rounded-full border border-neutral-300 bg-white px-5 py-3 font-normal outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10;
+  }
+  .card {
+    @apply rounded-3xl bg-white shadow-sm ring-1 ring-black/5;
+  }
+  .alert-error {
+    @apply rounded-2xl bg-brand-soft px-4 py-2.5 text-sm font-normal text-brand-dark;
+  }
+}
