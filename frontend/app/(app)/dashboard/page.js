@@ -1,39 +1,33 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '@/lib/api';
-import { formatNumber } from '@/lib/format';
 import { useSession } from '@/components/AppShell';
-import CopyButton from '@/components/CopyButton';
+import { useToasts } from '@/components/Toast';
 import FieldError, { INVALID } from '@/components/FieldError';
+import { PASSWORD_TOO_LONG } from '@/lib/password';
+import LinkSettingsFields, {
+  EMPTY_SETTINGS,
+  NO_SETTINGS_ENABLED,
+  SETTINGS_FIELD_ORDER,
+  settingsFieldId,
+  validateSettings,
+} from '@/components/LinkSettingsFields';
 
 export default function DashboardPage() {
   const { handleSessionError } = useSession();
-  const [links, setLinks] = useState(null);
-
-  useEffect(() => {
-    api('/links')
-      .then((data) => setLinks(data.links))
-      .catch(handleSessionError);
-  }, [handleSessionError]);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-4 py-10 text-center sm:px-6 lg:min-h-0">
-      <h1 className="text-4xl font-extrabold uppercase leading-none tracking-tight sm:text-6xl">
-        Shorten <span className="text-brand">Your</span> Link
-      </h1>
-      <p className="mt-3 text-lg text-neutral-600">ย่อลิงก์ให้สั้น พร้อม QR Code และสถิติการคลิก</p>
+    // Scrolls inside itself on short screens; my-auto keeps the content centred otherwise
+    <main className="flex w-full flex-1 flex-col overflow-y-auto lg:min-h-0">
+      <div className="mx-auto my-auto w-full max-w-3xl px-4 py-8 text-center sm:px-6">
+        <h1 className="text-4xl font-extrabold uppercase leading-none tracking-tight sm:text-6xl">
+          Shorten <span className="text-brand">Your</span> Link
+        </h1>
+        <p className="mt-3 text-lg text-neutral-600">ย่อลิงก์ให้สั้น พร้อม QR Code และสถิติการคลิก</p>
 
-      <ShortenForm
-        onCreated={(link) => setLinks((prev) => [link, ...(prev ?? [])])}
-        onError={handleSessionError}
-      />
-      <Summary links={links} />
-
-      <Link href="/links" className="btn btn-outline mx-auto mt-8">
-        ดูลิงก์ของฉัน →
-      </Link>
+        <ShortenForm onError={handleSessionError} />
+      </div>
     </main>
   );
 }
@@ -55,97 +49,131 @@ function validateUrl(input) {
   }
 }
 
-function ShortenForm({ onCreated, onError }) {
+const FIELD_ORDER = ['originalUrl', ...SETTINGS_FIELD_ORDER];
+const ID_PREFIX = 'new-link';
+
+function ShortenForm({ onError }) {
   const [url, setUrl] = useState('');
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
+  const [options, setOptions] = useState(EMPTY_SETTINGS);
+  const [enabled, setEnabled] = useState(NO_SETTINGS_ENABLED);
+  // Newly created links are announced with a notification at the bottom right
+  const { push: pushToast } = useToasts();
+  // One message per field: originalUrl, title, expiresAt, maxClicks, linkPassword (or `form` for general errors)
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  function setOption(name, value) {
+    setOptions((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  }
+
+  function focusField(field) {
+    document.getElementById(field === 'originalUrl' ? 'url-input' : settingsFieldId(ID_PREFIX, field))?.focus();
+  }
+
+  function toggleOption(name, on) {
+    setEnabled((prev) => ({ ...prev, [name]: on }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (on) setTimeout(() => focusField(name), 60);
+    else setOptions((prev) => ({ ...prev, [name]: '' }));
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const problem = validateUrl(url);
-    setError(problem);
-    if (problem) {
-      document.getElementById('url-input')?.focus();
+    const found = {};
+    const urlProblem = validateUrl(url);
+    if (urlProblem) found.originalUrl = urlProblem;
+    Object.assign(found, validateSettings(enabled, options));
+    setErrors(found);
+
+    const firstField = FIELD_ORDER.find((f) => found[f]);
+    if (firstField) {
+      focusField(firstField);
       return;
     }
 
     setSubmitting(true);
     try {
-      const { link } = await api('/links', { method: 'POST', body: { originalUrl: url } });
-      setResult(link);
+      const body = {
+        originalUrl: url,
+        title: enabled.title ? options.title.trim() : undefined,
+        expiresAt: enabled.expiresAt ? new Date(options.expiresAt).toISOString() : undefined,
+        maxClicks: enabled.maxClicks ? Number(options.maxClicks) : undefined,
+        linkPassword: enabled.linkPassword ? options.linkPassword : undefined,
+      };
+      const { link } = await api('/links', { method: 'POST', body });
+      pushToast({ kind: 'created', link });
       setUrl('');
-      onCreated(link);
+      setOptions(EMPTY_SETTINGS);
+      setEnabled(NO_SETTINGS_ENABLED);
     } catch (err) {
-      if (err.status === 401) onError(err);
-      else setError(err.message);
+      if (err.status === 401) {
+        onError(err);
+      } else if (err.field) {
+        // The backend named the field that failed
+        setErrors({ [err.field]: err.message });
+        focusField(err.field);
+      } else {
+        setErrors({ form: err.message });
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="card mt-8 p-3 text-left">
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="min-w-0 flex-1">
-          <input
-            id="url-input"
-            type="text"
-            inputMode="url"
-            autoFocus
-            aria-label="URL ที่ต้องการย่อ"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? 'url-error' : undefined}
-            placeholder="วาง URL ที่ต้องการย่อ เช่น https://www.synerry.com/"
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setError('');
-            }}
-            className={`input ${error ? INVALID : 'border-transparent bg-paper'}`}
-          />
-          <FieldError id="url-error" message={error} />
-        </div>
-        <button type="submit" disabled={submitting} className="btn btn-primary px-8 py-3 text-lg">
-          {submitting ? 'กำลังย่อ…' : 'ย่อลิงก์'}
-        </button>
-      </form>
-      {result && (
-        <div className="mx-1 mt-3 flex flex-col gap-3 rounded-2xl bg-brand-soft p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-neutral-600">Short URL ของคุณ</p>
-            <a href={result.shortUrl} target="_blank" rel="noopener noreferrer" className="break-all text-lg font-semibold text-brand hover:underline">
-              {result.shortUrl}
-            </a>
+    <div className="mt-8 text-left">
+      <form onSubmit={handleSubmit} noValidate>
+        {/* Box 1: the URL to shorten (the result appears as a notification at the bottom right) */}
+        <div className="card p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          <div className="min-w-0 flex-1">
+            <input
+              id="url-input"
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              autoFocus
+              aria-label="URL ที่ต้องการย่อ"
+              aria-invalid={Boolean(errors.originalUrl)}
+              aria-describedby={errors.originalUrl ? 'url-error' : undefined}
+              placeholder="วาง URL ที่ต้องการย่อ เช่น https://www.synerry.com/"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setErrors((prev) => ({ ...prev, originalUrl: undefined }));
+              }}
+              className={`input ${errors.originalUrl ? INVALID : 'border-transparent bg-paper'}`}
+            />
+            <FieldError id="url-error" message={errors.originalUrl} />
           </div>
-          <CopyButton text={result.shortUrl} />
+          <button type="submit" disabled={submitting} className="btn btn-primary px-8 py-3 text-lg">
+            {submitting ? 'กำลังย่อ…' : 'ย่อลิงก์'}
+          </button>
         </div>
-      )}
+
+        {errors.form && <p className="alert-error mx-1 mt-3">{errors.form}</p>}
+        </div>
+
+        {/* Box 2: separate box for the optional settings */}
+        <div className="card mt-4 p-4">
+          <h2 className="pl-1 text-lg font-extrabold">ปรับแต่งลิงก์</h2>
+          <p className="mb-4 pl-1 text-sm text-neutral-600">เปิดสวิตช์ของตัวเลือกที่ต้องการ (ไม่บังคับ)</p>
+          <LinkSettingsFields
+            idPrefix={ID_PREFIX}
+            enabled={enabled}
+            values={options}
+            errors={errors}
+            onToggle={toggleOption}
+            onChange={setOption}
+            onPasswordLimit={() => setErrors((prev) => ({ ...prev, linkPassword: PASSWORD_TOO_LONG }))}
+          />
+        </div>
+      </form>
+
     </div>
-  );
-}
-
-function Summary({ links }) {
-  const totalLinks = links?.length ?? 0;
-  const totalClicks = links?.reduce((sum, l) => sum + l.clickCount, 0) ?? 0;
-  const avg = totalLinks ? Math.round((totalClicks / totalLinks) * 10) / 10 : 0;
-  const items = [
-    ['TOTAL', totalLinks, 'LINKS'],
-    ['TOTAL', totalClicks, 'CLICKS'],
-    ['AVERAGE', avg, 'CLICKS / LINK'],
-  ];
-
-  return (
-    <section className="mt-10 grid grid-cols-3 gap-2 text-center sm:gap-4">
-      {items.map(([top, value, bottom]) => (
-        <div key={bottom}>
-          <p className="text-xs font-normal tracking-widest text-neutral-500 sm:text-base">{top}</p>
-          <p className="text-4xl font-extrabold leading-none tracking-tight text-brand sm:text-6xl">
-            {links ? formatNumber(value) : '–'}
-          </p>
-          <p className="mt-1 text-xs font-extrabold sm:text-lg">{bottom}</p>
-        </div>
-      ))}
-    </section>
   );
 }

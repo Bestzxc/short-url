@@ -1,7 +1,11 @@
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, field, data) {
     super(message);
     this.status = status;
+    // Name of the form field the backend rejected (e.g. "title"), when it says so
+    this.field = field;
+    // Full JSON body of the error response (e.g. { status: 'expired' } from the unlock endpoint)
+    this.data = data;
   }
 }
 
@@ -24,7 +28,7 @@ export async function api(path, { method = 'GET', body } = {}) {
   if (!res.ok) {
     // Free hosts return 502/503 while the backend is waking up
     const fallback = res.status >= 500 ? 'เซิร์ฟเวอร์กำลังเริ่มทำงาน กรุณาลองใหม่อีกครั้ง' : 'เกิดข้อผิดพลาด';
-    throw new ApiError(data?.error || fallback, res.status);
+    throw new ApiError(data?.error || fallback, res.status, data?.field, data);
   }
   return data;
 }

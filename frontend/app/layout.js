@@ -8,7 +8,7 @@ const kanit = Kanit({
 });
 
 export const metadata = {
-  title: "Short URL – ย่อลิงก์",
+  title: "ZipLink – ย่อลิงก์",
   description: "ย่อ URL ให้สั้น สร้าง QR Code และดูสถิติการคลิก",
 };
 

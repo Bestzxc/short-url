@@ -5,6 +5,8 @@ const { frontendUrl } = require('./config');
 const pool = require('./db');
 const authRoutes = require('./routes/auth');
 const linkRoutes = require('./routes/links');
+const publicRoutes = require('./routes/public');
+const statsRoutes = require('./routes/stats');
 const redirectRoutes = require('./routes/redirect');
 
 const app = express();
@@ -27,6 +29,8 @@ app.get('/', (req, res) => res.redirect(302, frontendUrl));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/links', linkRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/stats', statsRoutes);
 app.use('/api', (req, res) => res.status(404).json({ error: 'ไม่พบ API นี้' }));
 
 // Must come last: /:code would otherwise swallow the routes above

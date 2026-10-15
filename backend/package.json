@@ -1,7 +1,7 @@
 {
-  "name": "short-url-backend",
+  "name": "ziplink-backend",
   "version": "1.0.0",
-  "description": "Short URL REST API + redirect service (Express + MySQL)",
+  "description": "ZipLink REST API + redirect service (Express + MySQL)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

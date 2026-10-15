@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const pool = require('../db');
 const { setAuthCookie, clearAuthCookie, requireAuth } = require('../lib/auth');
+const { passwordTooLong, PASSWORD_TOO_LONG } = require('../lib/links');
 
 const router = express.Router();
 const BCRYPT_ROUNDS = 10;
@@ -18,9 +19,11 @@ router.post('/register', async (req, res) => {
   if (!EMAIL_RE.test(email) || email.length > 255) {
     return res.status(400).json({ error: 'รูปแบบอีเมลไม่ถูกต้อง' });
   }
-  if (password.length < 8 || password.length > 72) {
-    // bcrypt only uses the first 72 bytes
-    return res.status(400).json({ error: 'รหัสผ่านต้องยาว 8-72 ตัวอักษร' });
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร' });
+  }
+  if (passwordTooLong(password)) {
+    return res.status(400).json({ error: PASSWORD_TOO_LONG });
   }
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);

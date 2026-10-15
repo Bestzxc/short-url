@@ -41,4 +41,13 @@ function detectDeviceType(userAgent = '') {
   return 'desktop';
 }
 
-module.exports = { generateShortCode, normalizeUrl, shortUrlFor, detectDeviceType };
+// bcrypt only reads the first 72 BYTES of a password and silently ignores the rest. Thai
+// letters take 3 bytes each (English 1), so the limit is checked in bytes, not characters.
+const MAX_PASSWORD_BYTES = 72;
+const PASSWORD_TOO_LONG = 'รหัสผ่านยาวเกินไป (สูงสุด 72 ไบต์: ภาษาอังกฤษ 72 ตัว หรือภาษาไทยประมาณ 24 ตัว)';
+
+function passwordTooLong(password) {
+  return Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_BYTES;
+}
+
+module.exports = { generateShortCode, normalizeUrl, shortUrlFor, detectDeviceType, passwordTooLong, PASSWORD_TOO_LONG };

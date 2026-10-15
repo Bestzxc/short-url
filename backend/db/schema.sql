@@ -10,8 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS links (
   link_id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id            INT UNSIGNED NOT NULL,
+  title              VARCHAR(100) NULL,          -- owner's own label for the link (any language), not unique
   original_url       TEXT NOT NULL,
-  -- random code or custom alias; case-sensitive so "aB3" and "ab3" are different links
+  -- random code in the short URL; case-sensitive so "aB3" and "ab3" are different links
   short_code         VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL UNIQUE,
   link_password_hash VARCHAR(255) NULL,          -- NULL = no password
   expires_at         DATETIME NULL,              -- NULL = never expires
