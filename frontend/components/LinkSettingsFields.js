@@ -15,37 +15,46 @@ export const EMPTY_SETTINGS = { title: '', expiresAt: '', maxClicks: '', linkPas
 export const NO_SETTINGS_ENABLED = { title: false, expiresAt: false, maxClicks: false, linkPassword: false };
 export const SETTINGS_FIELD_ORDER = ['title', 'expiresAt', 'maxClicks', 'linkPassword'];
 
+// One checker per setting: returns the Thai reason it is invalid, or undefined
+function titleError({ title }) {
+  if (!title.trim()) return 'กรุณากรอกชื่อลิงก์ หรือปิดตัวเลือกนี้';
+  if (title.trim().length > MAX_TITLE_LENGTH) return `ชื่อลิงก์ต้องไม่เกิน ${MAX_TITLE_LENGTH} ตัวอักษร`;
+  return undefined;
+}
+
+function expiresAtError({ expiresAt }, { initial }) {
+  if (!expiresAt) return 'กรุณาเลือกวันและเวลาที่หมดอายุ หรือปิดตัวเลือกนี้';
+  const date = new Date(expiresAt);
+  if (Number.isNaN(date.getTime())) return 'วันหมดอายุไม่ถูกต้อง';
+  if (expiresAt !== initial.expiresAt && date <= new Date()) return 'วันหมดอายุต้องเป็นเวลาในอนาคต';
+  return undefined;
+}
+
+function maxClicksError({ maxClicks }) {
+  if (maxClicks === '') return 'กรุณากรอกจำนวนคลิกสูงสุด หรือปิดตัวเลือกนี้';
+  const n = Number(maxClicks);
+  if (!Number.isInteger(n) || n < 1 || n > 1000000) return 'ต้องเป็นจำนวนเต็ม 1 - 1,000,000';
+  return undefined;
+}
+
+function linkPasswordError({ linkPassword }, { passwordRequired }) {
+  if (!linkPassword) return passwordRequired ? 'กรุณากรอกรหัสผ่านลิงก์ หรือปิดตัวเลือกนี้' : undefined;
+  if (linkPassword.length < 4) return 'รหัสผ่านลิงก์ต้องยาวอย่างน้อย 4 ตัวอักษร';
+  if (passwordTooLong(linkPassword)) return PASSWORD_TOO_LONG;
+  return undefined;
+}
+
+const CHECKS = { title: titleError, expiresAt: expiresAtError, maxClicks: maxClicksError, linkPassword: linkPasswordError };
+
 // Returns { field: message } for every switched-on setting that is invalid.
 //   initial          values the link had before editing (an unchanged expiry is never rejected,
 //                    so an already-expired link can still be renamed)
 //   passwordRequired false when a password already exists: leaving the field empty keeps it
 export function validateSettings(enabled, values, { initial = {}, passwordRequired = true } = {}) {
-  const { title, expiresAt, maxClicks, linkPassword } = values;
   const errors = {};
-
-  if (enabled.title) {
-    if (!title.trim()) errors.title = 'กรุณากรอกชื่อลิงก์ หรือปิดตัวเลือกนี้';
-    else if (title.trim().length > MAX_TITLE_LENGTH) errors.title = `ชื่อลิงก์ต้องไม่เกิน ${MAX_TITLE_LENGTH} ตัวอักษร`;
-  }
-  if (enabled.expiresAt) {
-    const date = new Date(expiresAt);
-    if (!expiresAt) errors.expiresAt = 'กรุณาเลือกวันและเวลาที่หมดอายุ หรือปิดตัวเลือกนี้';
-    else if (Number.isNaN(date.getTime())) errors.expiresAt = 'วันหมดอายุไม่ถูกต้อง';
-    else if (expiresAt !== initial.expiresAt && date <= new Date()) errors.expiresAt = 'วันหมดอายุต้องเป็นเวลาในอนาคต';
-  }
-  if (enabled.maxClicks) {
-    const n = Number(maxClicks);
-    if (maxClicks === '') errors.maxClicks = 'กรุณากรอกจำนวนคลิกสูงสุด หรือปิดตัวเลือกนี้';
-    else if (!Number.isInteger(n) || n < 1 || n > 1000000) errors.maxClicks = 'ต้องเป็นจำนวนเต็ม 1 - 1,000,000';
-  }
-  if (enabled.linkPassword) {
-    if (!linkPassword) {
-      if (passwordRequired) errors.linkPassword = 'กรุณากรอกรหัสผ่านลิงก์ หรือปิดตัวเลือกนี้';
-    } else if (linkPassword.length < 4) {
-      errors.linkPassword = 'รหัสผ่านลิงก์ต้องยาวอย่างน้อย 4 ตัวอักษร';
-    } else if (passwordTooLong(linkPassword)) {
-      errors.linkPassword = PASSWORD_TOO_LONG;
-    }
+  for (const [name, check] of Object.entries(CHECKS)) {
+    const message = enabled[name] ? check(values, { initial, passwordRequired }) : undefined;
+    if (message) errors[name] = message;
   }
   return errors;
 }

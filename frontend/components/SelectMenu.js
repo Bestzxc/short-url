@@ -7,11 +7,11 @@ import { ChevronIcon } from './icons';
 const MENU_WIDTH = 272;
 
 // Toolbar dropdown: [icon] prefix  VALUE  ⌄  — opens a radio list (one choice) and, optionally,
-// extra rows under a divider (`footer`, a function that receives `close`). The menu is rendered
+// extra rows under a divider (`FooterItem`, a component that receives `close` and `itemClass` plus `footerProps`). The menu is rendered
 // into <body> with fixed positioning so a scrolling list can never clip it.
 //   options  [{ key, label, short?, count? }]  `short` is the text shown on the button itself
 //   active   highlights the button (e.g. a filter that is not "all")
-export default function SelectMenu({ icon: Icon, prefix, label, options, value, onChange, active = false, footer, heading, className = '' }) {
+export default function SelectMenu({ icon: Icon, prefix, label, options, value, onChange, active = false, FooterItem, footerProps, heading, className = '' }) {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
   const [position, setPosition] = useState(null); // style of the open menu
@@ -110,10 +110,10 @@ export default function SelectMenu({ icon: Icon, prefix, label, options, value, 
                 </button>
               );
             })}
-            {footer && (
+            {FooterItem && (
               <>
                 <div className="my-1.5 border-t border-neutral-100" />
-                {footer({ close: () => setPosition(null), itemClass })}
+                <FooterItem {...footerProps} close={() => setPosition(null)} itemClass={itemClass} />
               </>
             )}
           </div>,

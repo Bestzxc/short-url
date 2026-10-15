@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Modal from './Modal';
 import { CopyIcon } from './icons';
 
+const COPY_LABELS = { idle: 'คัดลอกรูป', copied: 'คัดลอกรูปแล้ว ✓', failed: 'คัดลอกไม่สำเร็จ' };
+
 export default function QrModal({ link, onClose }) {
   const src = `/api/links/${link.linkId}/qr`;
   const [copyState, setCopyState] = useState('idle'); // idle | copied | failed
@@ -35,7 +37,7 @@ export default function QrModal({ link, onClose }) {
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button type="button" onClick={copyImage} className="btn btn-outline gap-2 px-6 py-3">
             {copyState === 'idle' && <CopyIcon />}
-            {copyState === 'copied' ? 'คัดลอกรูปแล้ว ✓' : copyState === 'failed' ? 'คัดลอกไม่สำเร็จ' : 'คัดลอกรูป'}
+            {COPY_LABELS[copyState]}
           </button>
           <a href={`${src}?download=1`} download={`qr-${link.shortCode}.png`} className="btn btn-primary px-8 py-3">
             ดาวน์โหลด PNG

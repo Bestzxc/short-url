@@ -15,16 +15,14 @@ export default function Modal({ title, onClose, wide = false, children }) {
   if (typeof document === 'undefined') return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-[2px]"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-[2px]">
+      {/* Clicking the dark area closes the popup; Escape does the same from the keyboard */}
+      <button type="button" aria-label="ปิด" tabIndex={-1} onClick={onClose} className="absolute inset-0 h-full w-full cursor-default" />
+      <dialog
+        open
         aria-modal="true"
         aria-label={title}
-        className={`max-h-[94vh] w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:px-8 sm:py-6`}
-        onClick={(e) => e.stopPropagation()}
+        className={`relative m-0 max-h-[94vh] w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} overflow-y-auto rounded-3xl bg-white p-6 text-inherit shadow-2xl sm:px-8 sm:py-6`}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <h2 className="text-2xl font-extrabold">{title}</h2>
@@ -37,7 +35,7 @@ export default function Modal({ title, onClose, wide = false, children }) {
           </button>
         </div>
         {children}
-      </div>
+      </dialog>
     </div>,
     document.body,
   );

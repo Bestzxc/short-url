@@ -6,7 +6,15 @@ const { passwordTooLong, PASSWORD_TOO_LONG } = require('../lib/links');
 
 const router = express.Router();
 const BCRYPT_ROUNDS = 10;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// name@domain.tld, checked step by step (a single regex for this can backtrack for a long time)
+function isValidEmail(value) {
+  if (/\s/.test(value)) return false;
+  const parts = value.split('@');
+  if (parts.length !== 2 || !parts[0]) return false;
+  const dot = parts[1].lastIndexOf('.');
+  return dot > 0 && dot < parts[1].length - 1;
+}
 
 function readCredentials(body) {
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -16,7 +24,7 @@ function readCredentials(body) {
 
 router.post('/register', async (req, res) => {
   const { email, password } = readCredentials(req.body);
-  if (!EMAIL_RE.test(email) || email.length > 255) {
+  if (!isValidEmail(email) || email.length > 255) {
     return res.status(400).json({ error: 'รูปแบบอีเมลไม่ถูกต้อง' });
   }
   if (password.length < 8) {

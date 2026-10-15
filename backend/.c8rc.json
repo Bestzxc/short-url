@@ -1,0 +1,12 @@
+{
+  "all": true,
+  "src": [
+    "src"
+  ],
+  "exclude": [
+    "test/**",
+    "db/**",
+    "src/server.js"
+  ],
+  "reportsDir": "coverage"
+}

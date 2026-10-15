@@ -16,6 +16,25 @@ const ID_PREFIX = 'edit-link';
 // Popup for editing a link's settings: name, expiry, click limit and password.
 // The destination URL is deliberately NOT editable (shared links / QR codes would silently
 // start pointing somewhere else).
+// The expiry to send: null when switched off, the exact stored moment when unchanged, else the new one
+function expiresAtToSend(enabled, values, initial, link) {
+  if (!enabled.expiresAt) return null;
+  if (values.expiresAt === initial.expiresAt && link.expiresAt) return link.expiresAt;
+  return new Date(values.expiresAt).toISOString();
+}
+
+// Grey hint under "จำกัดจำนวนคลิก" when the limit already stops the link
+function maxClicksHint(link, enabled, values, initial) {
+  if (!enabled.maxClicks) return undefined;
+  if (link.status === 'limit-reached' && values.maxClicks === initial.maxClicks) {
+    return 'ลิงก์นี้คลิกครบแล้ว เพิ่มจำนวนเพื่อเปิดใช้อีกครั้ง';
+  }
+  if (values.maxClicks !== '' && Number(values.maxClicks) <= link.clickCount) {
+    return `มีคนคลิกแล้ว ${formatNumber(link.clickCount)} ครั้ง ลิงก์จะ "คลิกครบแล้ว" ทันที`;
+  }
+  return undefined;
+}
+
 export default function EditLinkModal({ link, onSave, onClose }) {
   // Settings the link has right now; the password itself is never sent to the browser
   const [initial] = useState(() => ({
@@ -58,11 +77,7 @@ export default function EditLinkModal({ link, onSave, onClose }) {
     // A switched-off setting is removed; for the password, an empty field keeps the current one
     const body = {
       title: enabled.title ? values.title.trim() : '',
-      expiresAt: enabled.expiresAt
-        ? values.expiresAt === initial.expiresAt && link.expiresAt
-          ? link.expiresAt // unchanged: send the exact stored moment back
-          : new Date(values.expiresAt).toISOString()
-        : null,
+      expiresAt: expiresAtToSend(enabled, values, initial, link),
       maxClicks: enabled.maxClicks ? Number(values.maxClicks) : null,
     };
     if (!enabled.linkPassword) body.linkPassword = null;
@@ -82,20 +97,12 @@ export default function EditLinkModal({ link, onSave, onClose }) {
     }
   }
 
-  const clicksLimit = Number(values.maxClicks);
-  const limitAlreadyReached = enabled.maxClicks && values.maxClicks !== '' && clicksLimit <= link.clickCount;
-  const isUnchangedLimit = values.maxClicks === initial.maxClicks;
   const hints = {
     expiresAt:
       link.status === 'expired' && enabled.expiresAt && values.expiresAt === initial.expiresAt
         ? 'ลิงก์นี้หมดอายุแล้ว เลือกวันใหม่เพื่อเปิดใช้อีกครั้ง'
         : undefined,
-    maxClicks:
-      link.status === 'limit-reached' && enabled.maxClicks && isUnchangedLimit
-        ? 'ลิงก์นี้คลิกครบแล้ว เพิ่มจำนวนเพื่อเปิดใช้อีกครั้ง'
-        : limitAlreadyReached
-          ? `มีคนคลิกแล้ว ${formatNumber(link.clickCount)} ครั้ง ลิงก์จะ "คลิกครบแล้ว" ทันที`
-          : undefined,
+    maxClicks: maxClicksHint(link, enabled, values, initial),
     linkPassword: link.hasPassword ? 'เว้นว่าง = ใช้รหัสเดิม · ปิดสวิตช์ = ลบรหัส' : undefined,
   };
 

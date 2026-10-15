@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import CopyButton from './CopyButton';
 import { TrashIcon } from './icons';
@@ -35,8 +35,10 @@ export function ToastProvider({ children }) {
   // Must stay a stable function: the toast timers depend on it
   const dismiss = useCallback((id) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
 
+  const value = useMemo(() => ({ push }), [push]);
+
   return (
-    <ToastContext.Provider value={{ push }}>
+    <ToastContext.Provider value={value}>
       {children}
       <Toasts toasts={toasts} onDismiss={dismiss} />
     </ToastContext.Provider>

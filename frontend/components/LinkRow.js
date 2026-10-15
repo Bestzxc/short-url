@@ -14,17 +14,27 @@ const STATUS = {
   'limit-reached': { label: 'คลิกครบแล้ว', className: 'bg-brand-soft text-brand-dark', dot: 'bg-brand' },
 };
 
+// How a row looks and what its switch says: expired = amber, switched off = grey, otherwise normal.
+// An expired link can no longer be opened, so it counts as switched off (its date can be changed in the edit popup).
+function rowLook(link) {
+  if (link.status === 'expired') {
+    return { on: false, card: 'bg-amber-100/80 shadow-none ring-amber-400', url: 'text-amber-800', switchText: 'หมดอายุ', switchLabel: 'ลิงก์หมดอายุแล้ว' };
+  }
+  if (!link.isActive) {
+    return { on: false, card: 'bg-neutral-300/70 shadow-none ring-neutral-400', url: 'text-neutral-600', switchText: 'ปิดอยู่', switchLabel: 'เปิดลิงก์นี้' };
+  }
+  return { on: true, card: 'ring-neutral-300', url: 'text-brand', switchText: 'เปิดใช้งาน', switchLabel: 'ปิดลิงก์นี้' };
+}
+
 export default function LinkRow({ link, busy, onToggle, onEdit, onQr, onStats, onDelete }) {
   const status = STATUS[link.status] ?? STATUS.active;
   const outlineButton = 'btn btn-outline btn-sm gap-2';
-  // A link that has been switched off is greyed out (the switch stays usable to turn it back on)
-  // An expired link can no longer be opened, so it looks switched off too (its date can be changed in the edit popup)
+  const look = rowLook(link);
+  const off = !look.on;
   const expired = link.status === 'expired';
-  const on = link.isActive && !expired;
-  const off = !on;
 
   return (
-    <li className={`card flex flex-col gap-3 p-4 md:min-h-[7.25rem] md:gap-4 md:px-5 md:py-3 transition-colors duration-300 md:flex-row md:justify-between ring-2 ${expired ? 'bg-amber-100/80 shadow-none ring-amber-400' : off ? 'bg-neutral-300/70 shadow-none ring-neutral-400' : 'ring-neutral-300'}`}>
+    <li className={`card flex flex-col gap-3 p-4 md:min-h-[7.25rem] md:gap-4 md:px-5 md:py-3 transition-colors duration-300 md:flex-row md:justify-between ring-2 ${look.card}`}>
       {/* Left: name, short URL + status, destination; dates sit at the bottom, level with the on/off switch */}
       <div className="flex min-w-0 flex-col md:flex-1">
         {link.title ? (
@@ -34,7 +44,7 @@ export default function LinkRow({ link, busy, onToggle, onEdit, onQr, onStats, o
         )}
 
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <a href={link.shortUrl} target="_blank" rel="noopener noreferrer" className={`break-all text-base font-semibold transition-colors duration-300 hover:underline ${expired ? 'text-amber-800' : off ? 'text-neutral-600' : 'text-brand'}`}>
+          <a href={link.shortUrl} target="_blank" rel="noopener noreferrer" className={`break-all text-base font-semibold transition-colors duration-300 hover:underline ${look.url}`}>
             {link.shortUrl}
           </a>
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
@@ -84,13 +94,13 @@ export default function LinkRow({ link, busy, onToggle, onEdit, onQr, onStats, o
 
           <div className="flex items-center gap-3">
             <Toggle
-              checked={on}
+              checked={look.on}
               onChange={onToggle}
               disabled={busy || expired}
-              label={expired ? 'ลิงก์หมดอายุแล้ว' : link.isActive ? 'ปิดลิงก์นี้' : 'เปิดลิงก์นี้'}
+              label={look.switchLabel}
             />
-            <span className={`w-[4.5rem] text-sm font-semibold ${on ? 'text-brand' : 'text-neutral-400'}`}>
-              {expired ? 'หมดอายุ' : link.isActive ? 'เปิดใช้งาน' : 'ปิดอยู่'}
+            <span className={`w-[4.5rem] text-sm font-semibold ${look.on ? 'text-brand' : 'text-neutral-400'}`}>
+              {look.switchText}
             </span>
           </div>
         </div>
