@@ -1,6 +1,6 @@
 # ZipLink
 
-**Tech stack:** React (Next.js) · Node.js (Express) · MySQL — แบบ **microservice** (API service + Redirect service แยกกัน)
+**Tech stack:** React (Next.js) · Express(Node.js) · MySQL — แบบ **microservice** (API service + Redirect service แยกกัน)
 
 ระบบย่อ URL ครบวงจร: ย่อลิงก์ได้ทันที มี QR Code ให้สแกน ดูสถิติการคลิกได้ละเอียด ตั้งรหัสผ่าน/วันหมดอายุ/จำกัดจำนวนคลิกให้ลิงก์ได้ รองรับการค้นหาและเรียงลำดับ
 
@@ -30,7 +30,7 @@
 
 ## สถาปัตยกรรม
 
-ไดอะแกรมแบบเต็มอยู่ใน [`architecture-diagram.html`](architecture-diagram.html) และ [`deployment-diagram.html`](deployment-diagram.html) (เปิดด้วยเบราว์เซอร์ได้เลย) สรุปสั้นๆ:
+ไดอะแกรมแบบเต็ม (Architecture, Deployment) อยู่ใน[เอกสารออกแบบ](#เอกสารออกแบบ)ด้านล่าง สรุปสั้นๆ:
 
 ```
                     HTTPS                REST API (HTTPS)
@@ -51,7 +51,7 @@
 
 ## เอกสารออกแบบ
 
-DFD, ER Diagram, Architecture Diagram และ Deployment Diagram ส่งแยกเป็นเอกสารต่างหาก (ไม่ได้รวมอยู่ใน repo นี้)
+DFD, ER Diagram, Architecture Diagram และ Deployment Diagram: [ดูที่โฟลเดอร์นี้](https://drive.google.com/drive/folders/13J1ylbFUrdS_nkpWVsb-JUih1SjxPhaE?usp=sharing)
 
 โครงสร้างตารางจริงอยู่ที่ [`db/schema.sql`](db/schema.sql)
 
@@ -104,8 +104,8 @@ CREATE DATABASE short_url CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ```bash
-# จากโฟลเดอร์โปรเจกต์หลัก (ตั้งค่า DATABASE_URL เป็น env ก่อนรัน หรือสร้าง .env ที่ root)
-node db/migrate.js
+# จากโฟลเดอร์โปรเจกต์หลัก
+DATABASE_URL=mysql://root:password@localhost:3306/short_url node db/migrate.js
 ```
 
 ### 2. API Service (port 4000)
@@ -160,7 +160,7 @@ REDIRECT_API_URL=http://localhost:4002
 | ส่วน | Host | วิธี |
 |---|---|---|
 | Frontend | **Vercel** | Import repo → Root Directory ตั้งเป็น `frontend` → ตั้ง env `API_URL`, `REDIRECT_API_URL` ชี้ไป Render |
-| API + Redirect Service | **Render** | ใช้ [`render.yaml`](https://github.com/Bestzxc/short-url/blob/main/render.yaml) ที่ root ของโปรเจกต์ → New → Blueprint → เลือก repo → กรอก `DATABASE_URL`, `FRONTEND_URL`, `REDIRECT_BASE_URL` |
+| API + Redirect Service | **Render** | ใช้ [`render.yaml`](render.yaml) ที่ root ของโปรเจกต์ → New → Blueprint → เลือก repo → กรอก `DATABASE_URL`, `FRONTEND_URL`, `REDIRECT_BASE_URL` |
 | Database | **TiDB Serverless** | สร้าง cluster ฟรี, สร้าง database `short_url`, รัน `db/migrate.js` ครั้งเดียวเพื่อสร้างตาราง |
 
 ## การทดสอบอัตโนมัติ
