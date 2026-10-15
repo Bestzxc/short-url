@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import Logo from './Logo';
-import Decor from './Decor';
 import FieldError, { INVALID } from './FieldError';
 import { PASSWORD_TOO_LONG, passwordTooLong } from '@/lib/password';
 
@@ -90,35 +89,34 @@ export default function AuthForm({ mode }) {
   }
 
   return (
-    <main className="flex flex-1 flex-col lg:flex-row">
-      <Decor />
+    <main className="relative flex flex-1 flex-col overflow-hidden bg-ink lg:flex-row">
+      <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/90" aria-hidden="true" />
+      <div className="absolute -right-10 top-40 h-40 w-40 rounded-full border-[18px] border-white/5" aria-hidden="true" />
 
-      <section className="relative overflow-hidden bg-ink px-6 py-10 text-white lg:flex lg:w-[46%] lg:flex-col lg:justify-between lg:px-14 lg:py-14">
-        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/90" aria-hidden="true" />
-        <div className="absolute -right-10 top-40 h-40 w-40 rounded-full border-[18px] border-white/5" aria-hidden="true" />
-        <div className="relative">
+      <section className="relative flex flex-col justify-center px-6 py-10 text-white lg:w-1/2 lg:items-end lg:px-14 lg:py-14">
+        <div className="w-full max-w-md lg:pr-6">
           <Logo light />
+          <div className="mt-10">
+            <h2 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+              ย่อลิงก์ให้<span className="text-brand">สั้น</span>
+              <br />
+              แชร์ง่าย ติดตามได้
+            </h2>
+            <ul className="mt-8 hidden space-y-5 sm:block">
+              {FEATURES.map(([tag, text]) => (
+                <li key={tag} className="flex items-center gap-4">
+                  <span className="w-16 shrink-0 text-lg font-extrabold tracking-wide text-brand">{tag}</span>
+                  <span className="text-white/80">{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="mt-10 hidden text-sm text-white/40 lg:block">React (Next.js) · Node.js (Express) · MySQL</p>
         </div>
-        <div className="relative mt-10 lg:mt-0">
-          <h2 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-            ย่อลิงก์ให้<span className="text-brand">สั้น</span>
-            <br />
-            แชร์ง่าย ติดตามได้
-          </h2>
-          <ul className="mt-8 hidden space-y-5 sm:block">
-            {FEATURES.map(([tag, text]) => (
-              <li key={tag} className="flex items-center gap-4">
-                <span className="w-16 shrink-0 text-lg font-extrabold tracking-wide text-brand">{tag}</span>
-                <span className="text-white/80">{text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="relative mt-10 hidden text-sm text-white/40 lg:block">React (Next.js) · Node.js (Express) · MySQL</p>
       </section>
 
-      <section className="flex flex-1 items-center justify-center px-4 py-12 sm:px-8">
-        <form onSubmit={handleSubmit} noValidate className="w-full max-w-md">
+      <section className="relative flex flex-1 items-center justify-center px-4 py-12 sm:px-8 lg:w-1/2 lg:flex-none lg:justify-start">
+        <form onSubmit={handleSubmit} noValidate className="card w-full max-w-lg p-10 sm:p-12 lg:ml-6">
           <h1 className="text-4xl font-extrabold">{copy.title}</h1>
           <p className="mt-2 text-neutral-600">{copy.subtitle}</p>
 
@@ -129,6 +127,7 @@ export default function AuthForm({ mode }) {
                 id="email"
                 type="email"
                 autoComplete="email"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => updateField('email', e.target.value, setEmail)}
                 aria-invalid={Boolean(fieldErrors.email)}
@@ -143,6 +142,7 @@ export default function AuthForm({ mode }) {
                 id="password"
                 type="password"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                placeholder={mode === 'register' ? 'อย่างน้อย 8 ตัวอักษร' : 'รหัสผ่านของคุณ'}
                 value={password}
                 onChange={(e) => {
                   // Refuse input past the 72-byte limit instead of silently accepting it
@@ -154,9 +154,6 @@ export default function AuthForm({ mode }) {
                 className={`input ${fieldErrors.password ? INVALID : ''}`}
               />
               <FieldError id="password-error" message={fieldErrors.password} />
-              {mode === 'register' && !fieldErrors.password && (
-                <p className="mt-1.5 pl-4 text-xs text-neutral-500">อย่างน้อย 8 ตัวอักษร</p>
-              )}
             </div>
           </div>
 

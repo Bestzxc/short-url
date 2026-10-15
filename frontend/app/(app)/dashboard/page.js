@@ -45,7 +45,7 @@ function validateUrl(input) {
     if (!url.hostname.includes('.') && url.hostname !== 'localhost') return 'URL ไม่ถูกต้อง ชื่อเว็บต้องมีจุด เช่น example.com';
     return '';
   } catch {
-    return 'URL ไม่ถูกต้อง เช่น https://www.synerry.com/';
+    return 'URL ไม่ถูกต้อง เช่น https://www.example.com/';
   }
 }
 
@@ -140,7 +140,7 @@ function ShortenForm({ onError }) {
               aria-label="URL ที่ต้องการย่อ"
               aria-invalid={Boolean(errors.originalUrl)}
               aria-describedby={errors.originalUrl ? 'url-error' : undefined}
-              placeholder="วาง URL ที่ต้องการย่อ เช่น https://www.synerry.com/"
+              placeholder="วาง URL ที่ต้องการย่อ เช่น https://www.example.com/"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
