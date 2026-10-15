@@ -165,6 +165,34 @@ router.post('/', async (req, res) => {
 //   expiresAt    ISO date | null (null = never expires)
 //   maxClicks    integer | null (null = unlimited)
 //   linkPassword string (set / change) | null (remove)
+const WRONG_DATA = 'ข้อมูลไม่ถูกต้อง';
+
+// null clears an optional setting, anything else goes through its own parser
+const orNull = (value, parse) => (value === null ? null : parse(value));
+
+// Turns the PATCH body into { column: newValue } for just the settings that were sent.
+// Throws ValidationError when a value is not acceptable.
+async function parseLinkChanges(body, current) {
+  const changes = {};
+  if (body.isActive !== undefined) {
+    if (typeof body.isActive !== 'boolean') throw new ValidationError(undefined, WRONG_DATA);
+    changes.is_active = body.isActive;
+  }
+  if (body.title !== undefined) {
+    if (typeof body.title !== 'string') throw new ValidationError(undefined, WRONG_DATA);
+    changes.title = parseTitle(body.title);
+  }
+  if (body.expiresAt !== undefined) {
+    changes.expires_at = orNull(body.expiresAt, (v) => parseExpiresAt(v, current.expires_at));
+  }
+  if (body.maxClicks !== undefined) changes.max_clicks = orNull(body.maxClicks, parseMaxClicks);
+  if (body.linkPassword !== undefined) {
+    const password = orNull(body.linkPassword, parseLinkPassword);
+    changes.link_password_hash = password === null ? null : await bcrypt.hash(password, BCRYPT_ROUNDS);
+  }
+  return changes;
+}
+
 // The destination URL can NOT be changed: links and QR codes already shared would silently
 // start pointing somewhere else. Always scoped to the owner.
 router.patch('/:id', async (req, res) => {
@@ -173,43 +201,19 @@ router.patch('/:id', async (req, res) => {
   const current = await findOwnedLink(linkId, req.user.userId);
   if (!current) return res.status(404).json({ error: 'ไม่พบลิงก์' });
 
-  const body = req.body ?? {};
-  const changes = [];
-  const values = [];
-  const set = (column, value) => {
-    changes.push(`${column} = ?`);
-    values.push(value);
-  };
-
+  let changes;
   try {
-    if (body.isActive !== undefined) {
-      if (typeof body.isActive !== 'boolean') return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
-      set('is_active', body.isActive);
-    }
-    if (body.title !== undefined) {
-      if (typeof body.title !== 'string') return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
-      set('title', parseTitle(body.title));
-    }
-    if (body.expiresAt !== undefined) {
-      set('expires_at', body.expiresAt === null ? null : parseExpiresAt(body.expiresAt, current.expires_at));
-    }
-    if (body.maxClicks !== undefined) {
-      set('max_clicks', body.maxClicks === null ? null : parseMaxClicks(body.maxClicks));
-    }
-    if (body.linkPassword !== undefined) {
-      set(
-        'link_password_hash',
-        body.linkPassword === null ? null : await bcrypt.hash(parseLinkPassword(body.linkPassword), BCRYPT_ROUNDS),
-      );
-    }
+    changes = await parseLinkChanges(req.body ?? {}, current);
   } catch (err) {
     if (err instanceof ValidationError) return res.status(400).json({ field: err.field, error: err.message });
     throw err;
   }
-  if (changes.length === 0) return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
+  const columns = Object.keys(changes);
+  const assignments = columns.map((column) => `${column} = ?`).join(', ');
+  if (columns.length === 0) return res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง' });
 
-  await pool.execute(`UPDATE links SET ${changes.join(', ')} WHERE link_id = ? AND user_id = ?`, [
-    ...values,
+  await pool.execute(`UPDATE links SET ${assignments} WHERE link_id = ? AND user_id = ?`, [
+    ...Object.values(changes),
     linkId,
     req.user.userId,
   ]);

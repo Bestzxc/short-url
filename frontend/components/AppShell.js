@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import Logo from './Logo';
 import Decor from './Decor';
@@ -46,6 +46,8 @@ export default function AppShell({ children }) {
     router.replace('/login');
   }
 
+  const sessionValue = useMemo(() => ({ user, handleSessionError }), [user, handleSessionError]);
+
   if (!user) {
     return <main className="flex flex-1 items-center justify-center text-neutral-500">กำลังโหลด…</main>;
   }
@@ -74,7 +76,7 @@ export default function AppShell({ children }) {
           </div>
         </div>
       </header>
-      <SessionContext.Provider value={{ user, handleSessionError }}>
+      <SessionContext.Provider value={sessionValue}>
         <ToastProvider>{children}</ToastProvider>
       </SessionContext.Provider>
     </div>

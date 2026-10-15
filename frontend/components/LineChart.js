@@ -27,6 +27,24 @@ function parseDay(day) {
   return new Date(y, m - 1, d || 1);
 }
 
+// Every how-many-th label on the x axis: a month shows up to 6, a long range every 5th (10th on a phone)
+function labelStep(monthly, n, width) {
+  if (monthly) return Math.ceil(n / 6);
+  return width < 420 ? 10 : 5;
+}
+
+function axisLabel(key, monthly, weekly) {
+  const date = parseDay(key);
+  if (monthly) return date.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' });
+  if (weekly) return WEEKDAYS[date.getDay()];
+  return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
+
+function dotRadius(hovered, weekly) {
+  if (hovered) return 6;
+  return weekly ? 4 : 2.5;
+}
+
 // unit 'month': keys are 'YYYY-MM' (one point per month); height: fixed chart height in px
 export default function LineChart({ data, unit = 'day', height }) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -62,12 +80,9 @@ export default function LineChart({ data, unit = 'day', height }) {
   // Weekday letters for a week; every 5th date for a month
   const weekly = n <= 7 && unit !== 'month';
   // On a narrow screen a month shows every 10th date so the labels never touch
-  const monthStep = monthly ? Math.ceil(n / 6) : W < 420 ? 10 : 5;
+  const monthStep = labelStep(monthly, n, W);
   const labelAt = (i) => (weekly ? true : i % monthStep === 0 || (i === n - 1 && (n - 1) % monthStep >= monthStep / 2));
-  const labelText = (d) =>
-    monthly
-      ? parseDay(d.day).toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })
-      : weekly ? WEEKDAYS[parseDay(d.day).getDay()] : parseDay(d.day).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  const labelText = (d) => axisLabel(d.day, monthly, weekly);
 
   const colWidth = n === 1 ? PLOT_W : PLOT_W / (n - 1);
   const hovered = hover !== null ? data[hover] : null;
@@ -115,7 +130,7 @@ export default function LineChart({ data, unit = 'day', height }) {
 
         {/* dots (bigger for the hovered day) */}
         {points.map(([px, py], i) => (
-          <circle key={data[i].day} cx={px} cy={py} r={hover === i ? 6 : weekly ? 4 : 2.5} className="fill-white" stroke="currentColor" strokeWidth="2.5" />
+          <circle key={data[i].day} cx={px} cy={py} r={dotRadius(hover === i, weekly)} className="fill-white" stroke="currentColor" strokeWidth="2.5" />
         ))}
 
         {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={M.top} y2={y(0)} className="stroke-neutral-300" strokeWidth="1" />}

@@ -2,3 +2,7 @@ node_modules/
 .env
 .env.local
 .DS_Store
+
+# SonarQube local files (may contain a token / project details)
+hook.txt
+sonar-*.json

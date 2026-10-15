@@ -50,6 +50,36 @@ function matchesQuery(link, query) {
   return haystack.includes(query);
 }
 
+// "มีรหัสผ่าน" checkbox at the bottom of the status menu
+function ProtectedOnlyItem({ checked, onToggle, close, itemClass }) {
+  return (
+    <button
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={checked}
+      onClick={() => {
+        onToggle();
+        close();
+      }}
+      className={itemClass}
+    >
+      <span
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${checked ? 'border-brand bg-brand text-white' : 'border-neutral-300'}`}
+        aria-hidden="true"
+      >
+        {checked && (
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        )}
+      </span>
+      <span className={`flex flex-1 items-center gap-1.5 ${checked ? 'font-semibold' : ''}`}>
+        <LockIcon /> มีรหัสผ่าน
+      </span>
+    </button>
+  );
+}
+
 // useSearchParams needs a Suspense boundary in this version of Next.js
 export default function MyLinksPage() {
   return (
@@ -170,6 +200,61 @@ function MyLinks() {
     setOnlyProtected(false);
   }
 
+  // What fills the list area: loading text, an empty state, "nothing matches", or the page of links
+  function renderList() {
+    if (links === null) return <p className="text-neutral-500">กำลังโหลด…</p>;
+    if (links.length === 0) {
+      return (
+        <div className="card p-10 text-center">
+          <p className="text-neutral-500">ยังไม่มีลิงก์</p>
+          <Link href="/dashboard" className="btn btn-primary mt-4">ย่อลิงก์แรกของคุณ</Link>
+        </div>
+      );
+    }
+    if (visible.length === 0) {
+      return (
+        <div className="card p-10 text-center">
+          <p className="font-semibold">ไม่พบลิงก์ที่ตรงกับเงื่อนไข</p>
+          <p className="mt-1 text-sm text-neutral-500">ลองเปลี่ยนคำค้นหา หรือเลือกสถานะอื่น</p>
+          <button onClick={clearFilters} className="btn btn-outline mt-4">ล้างการค้นหาและตัวกรอง</button>
+        </div>
+      );
+    }
+    return (
+        <>
+          {filtering && (
+            <p className="mb-2 text-sm text-neutral-500" aria-live="polite">
+              แสดง {visible.length} จาก {links.length} ลิงก์
+              {activeFilterLabels.length > 0 && <> · กรอง: {activeFilterLabels.join(' + ')}</>} ·{' '}
+              <button onClick={clearFilters} className="font-medium text-brand hover:underline">ล้างตัวกรอง</button>
+            </p>
+          )}
+          <ul className={`space-y-2.5 ${totalPages > 1 ? 'md:min-h-[38.75rem]' : ''}`}>
+            {pageLinks.map((link) => (
+              <LinkRow
+                key={link.linkId}
+                link={link}
+                busy={togglingId === link.linkId}
+                onToggle={() => toggleLink(link)}
+                onEdit={() => setEditTarget(link)}
+                onQr={() => setQrLink(link)}
+                onStats={() => setStatsLink(link)}
+                onDelete={() => setDeleteTarget(link)}
+              />
+            ))}
+          </ul>
+          {totalPages > 1 && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-neutral-500">
+              <span>
+                แสดง {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + pageLinks.length} จาก {visible.length} ลิงก์
+              </span>
+              <Pager page={page} totalPages={totalPages} onChange={(n) => setPageState({ key: pageKey, page: n })} />
+            </div>
+          )}
+        </>
+    );
+  }
+
   return (
     <>
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 py-3 sm:px-6 sm:py-4 lg:min-h-0">
@@ -217,32 +302,8 @@ function MyLinks() {
               value={statusFilter}
               onChange={setStatusFilter}
               active={statusFilter !== 'all' || onlyProtected}
-              footer={({ close, itemClass }) => (
-                <button
-                  type="button"
-                  role="menuitemcheckbox"
-                  aria-checked={onlyProtected}
-                  onClick={() => {
-                    setOnlyProtected((v) => !v);
-                    close();
-                  }}
-                  className={itemClass}
-                >
-                  <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${onlyProtected ? 'border-brand bg-brand text-white' : 'border-neutral-300'}`}
-                    aria-hidden="true"
-                  >
-                    {onlyProtected && (
-                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12.5l4.5 4.5L19 7.5" />
-                      </svg>
-                    )}
-                  </span>
-                  <span className={`flex flex-1 items-center gap-1.5 ${onlyProtected ? 'font-semibold' : ''}`}>
-                    <LockIcon /> มีรหัสผ่าน
-                  </span>
-                </button>
-              )}
+              FooterItem={ProtectedOnlyItem}
+              footerProps={{ checked: onlyProtected, onToggle: () => setOnlyProtected((v) => !v) }}
             />
 
             <button
@@ -261,52 +322,7 @@ function MyLinks() {
 
         {/* The list scrolls inside this box so the page itself never scrolls on desktop */}
         <div className="min-h-0 flex-1 lg:overflow-y-auto lg:p-[3px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {links === null ? (
-            <p className="text-neutral-500">กำลังโหลด…</p>
-          ) : links.length === 0 ? (
-            <div className="card p-10 text-center">
-              <p className="text-neutral-500">ยังไม่มีลิงก์</p>
-              <Link href="/dashboard" className="btn btn-primary mt-4">ย่อลิงก์แรกของคุณ</Link>
-            </div>
-          ) : visible.length === 0 ? (
-            <div className="card p-10 text-center">
-              <p className="font-semibold">ไม่พบลิงก์ที่ตรงกับเงื่อนไข</p>
-              <p className="mt-1 text-sm text-neutral-500">ลองเปลี่ยนคำค้นหา หรือเลือกสถานะอื่น</p>
-              <button onClick={clearFilters} className="btn btn-outline mt-4">ล้างการค้นหาและตัวกรอง</button>
-            </div>
-          ) : (
-            <>
-              {filtering && (
-                <p className="mb-2 text-sm text-neutral-500" aria-live="polite">
-                  แสดง {visible.length} จาก {links.length} ลิงก์
-                  {activeFilterLabels.length > 0 && <> · กรอง: {activeFilterLabels.join(' + ')}</>} ·{' '}
-                  <button onClick={clearFilters} className="font-medium text-brand hover:underline">ล้างตัวกรอง</button>
-                </p>
-              )}
-              <ul className={`space-y-2.5 ${totalPages > 1 ? 'md:min-h-[38.75rem]' : ''}`}>
-                {pageLinks.map((link) => (
-                  <LinkRow
-                    key={link.linkId}
-                    link={link}
-                    busy={togglingId === link.linkId}
-                    onToggle={() => toggleLink(link)}
-                    onEdit={() => setEditTarget(link)}
-                    onQr={() => setQrLink(link)}
-                    onStats={() => setStatsLink(link)}
-                    onDelete={() => setDeleteTarget(link)}
-                  />
-                ))}
-              </ul>
-              {totalPages > 1 && (
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-neutral-500">
-                  <span>
-                    แสดง {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + pageLinks.length} จาก {visible.length} ลิงก์
-                  </span>
-                  <Pager page={page} totalPages={totalPages} onChange={(n) => setPageState({ key: pageKey, page: n })} />
-                </div>
-              )}
-            </>
-          )}
+          {renderList()}
         </div>
       </main>
 

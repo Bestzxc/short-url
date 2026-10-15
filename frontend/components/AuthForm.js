@@ -1,5 +1,6 @@
 'use client';
 
+import { isValidEmail } from '@/lib/email';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -34,17 +35,18 @@ const FEATURES = [
   ['STATS', 'ดูจำนวนคลิก แยกตามวันและอุปกรณ์'],
 ];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMPTY_FIELD_MSG = 'กรุณากรอกรหัสผ่าน';
+const TOO_SHORT_MSG = 'รหัสผ่านสั้นเกินไป ต้องมีอย่างน้อย 8 ตัวอักษร';
 
 // Returns { email?, password? } with a Thai reason for each field that fails
 function validate(mode, email, password) {
   const errors = {};
   const value = email.trim();
   if (!value) errors.email = 'กรุณากรอกอีเมล';
-  else if (!EMAIL_RE.test(value)) errors.email = 'รูปแบบอีเมลไม่ถูกต้อง เช่น name@example.com';
+  else if (!isValidEmail(value)) errors.email = 'รูปแบบอีเมลไม่ถูกต้อง เช่น name@example.com';
 
-  if (!password) errors.password = 'กรุณากรอกรหัสผ่าน';
-  else if (mode === 'register' && password.length < 8) errors.password = 'รหัสผ่านสั้นเกินไป ต้องมีอย่างน้อย 8 ตัวอักษร';
+  if (!password) errors.password = EMPTY_FIELD_MSG;
+  else if (mode === 'register' && password.length < 8) errors.password = TOO_SHORT_MSG;
   else if (passwordTooLong(password)) errors.password = PASSWORD_TOO_LONG;
   return errors;
 }

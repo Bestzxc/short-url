@@ -51,7 +51,8 @@ export default function StatsPage() {
             <p className="mt-2 text-neutral-600">วิเคราะห์ประสิทธิภาพลิงก์ทั้งหมดของคุณ</p>
           </div>
 
-          <div className="inline-flex items-center gap-1 rounded-full bg-white p-1 ring-1 ring-neutral-300" role="group" aria-label="ช่วงเวลา">
+          <fieldset className="m-0 inline-flex min-w-0 items-center gap-1 rounded-full border-0 bg-white p-1 ring-1 ring-neutral-300">
+            <legend className="sr-only">ช่วงเวลา</legend>
             <CalendarIcon className="ml-2.5 h-4 w-4 text-neutral-500" />
             {RANGES.map((range) => (
               <button
@@ -66,7 +67,7 @@ export default function StatsPage() {
                 {range.label}
               </button>
             ))}
-          </div>
+          </fieldset>
         </div>
 
         {error && <p className="alert-error mt-4">{error}</p>}
@@ -93,7 +94,7 @@ export default function StatsPage() {
             ) : (
               <div className="h-56 animate-pulse rounded-2xl bg-paper" aria-hidden="true" />
             )}
-            {data && data.totalClicks === 0 && <p className="mt-2 text-center text-sm text-neutral-500">ยังไม่มีการคลิกในช่วงนี้</p>}
+            {data?.totalClicks === 0 && <p className="mt-2 text-center text-sm text-neutral-500">ยังไม่มีการคลิกในช่วงนี้</p>}
           </section>
 
           <section className="card mt-4 p-5 sm:p-6">

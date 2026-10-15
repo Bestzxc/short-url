@@ -24,6 +24,13 @@ function sameDay(a, b) {
 
 // Calendar + time picker shown in a popup (Thai month names, Buddhist-era years like the rest
 // of the app). Only future moments can be picked, because it sets a link's expiry.
+// Colours of one day in the calendar grid
+function dayCellClass({ isSelected, disabled, isTodayCell }) {
+  if (isSelected) return 'bg-brand text-white shadow-md shadow-brand/30';
+  if (disabled) return 'cursor-not-allowed text-neutral-300';
+  return `hover:bg-brand-soft hover:text-brand-dark ${isTodayCell ? 'text-brand ring-1 ring-brand/40' : ''}`;
+}
+
 export default function DateTimePickerModal({ initialValue, onConfirm, onClose }) {
   // Lazy initial state: the clock is read once when the popup opens, not on every render
   const [now] = useState(() => new Date());
@@ -153,13 +160,7 @@ export default function DateTimePickerModal({ initialValue, onConfirm, onClose }
                         setSelected(day);
                         setTime((prev) => clampTime(prev, day));
                       }}
-                      className={`mx-auto flex h-9 w-9 items-center justify-center rounded-xl text-sm font-medium transition-colors ${
-                        isSelected
-                          ? 'bg-brand text-white shadow-md shadow-brand/30'
-                          : disabled
-                            ? 'cursor-not-allowed text-neutral-300'
-                            : `hover:bg-brand-soft hover:text-brand-dark ${isTodayCell ? 'text-brand ring-1 ring-brand/40' : ''}`
-                      }`}
+                      className={`mx-auto flex h-9 w-9 items-center justify-center rounded-xl text-sm font-medium transition-colors ${dayCellClass({ isSelected, disabled, isTodayCell })}`}
                     >
                       {day.d}
                     </button>

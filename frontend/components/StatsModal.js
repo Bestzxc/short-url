@@ -140,7 +140,7 @@ export default function StatsModal({ link, onClose }) {
       <section className="mt-4">
         <h3 className="mb-2 font-bold text-ink">ประวัติการคลิกล่าสุด</h3>
         {clicksError && <p className="alert-error mb-2">{clicksError}</p>}
-        {history && history.total === 0 ? (
+        {history?.total === 0 ? (
           <p className="flex min-h-[291px] items-center justify-center rounded-2xl bg-paper text-sm text-neutral-500">ยังไม่มีการคลิก</p>
         ) : (
           <ul className={`divide-y divide-neutral-100 min-h-[291px] rounded-2xl border border-neutral-200 text-sm transition-opacity ${loadingClicks ? 'opacity-50' : ''}`}>
