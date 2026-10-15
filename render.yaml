@@ -1,0 +1,51 @@
+# Render Blueprint: deploys both backend microservices in one click.
+# On render.com: New → Blueprint → pick this repo → Render reads this file automatically.
+#
+# A few values can't be filled in ahead of time (they depend on URLs Render hands out only
+# after the first deploy, or on your own TiDB connection string) — those are marked
+# "sync: false" below, which makes Render prompt for them once during setup and leaves them
+# editable afterwards from each service's Environment tab.
+services:
+  - type: web
+    name: ziplink-api
+    runtime: node
+    rootDir: services/api
+    plan: free
+    region: singapore
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # mysql://USER:PASSWORD@HOST:PORT/DATABASE — from TiDB Cloud
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true # Render generates and stores a random 256-bit value
+      - key: FRONTEND_URL
+        sync: false # the Vercel URL, e.g. https://ziplink.vercel.app
+      - key: REDIRECT_BASE_URL
+        sync: false # the ziplink-redirect service's own Render URL (see below)
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: ziplink-redirect
+    runtime: node
+    rootDir: services/redirect
+    plan: free
+    region: singapore
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # same TiDB connection string as ziplink-api — both share one database
+      - key: DB_SSL
+        value: "true"
+      - key: FRONTEND_URL
+        sync: false # the Vercel URL, e.g. https://ziplink.vercel.app
+      - key: NODE_ENV
+        value: production
