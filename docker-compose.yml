@@ -1,6 +1,7 @@
 # Run everything with: docker compose up --build
 #   frontend  http://localhost:3000   (open this one)
-#   backend   http://localhost:4000   (short links are served from here)
+#   api       http://localhost:4000   (REST API — auth, links, stats)
+#   redirect  http://localhost:4002   (short links are served from here, and QR codes point here)
 #   mysql     localhost:3307          (optional: for a SQL client)
 #   phpmyadmin http://localhost:8080  (database viewer)
 services:
@@ -17,7 +18,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       # Tables are created automatically the first time the database starts
-      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-prootpassword"]
       interval: 5s
@@ -35,8 +36,9 @@ services:
     ports:
       - "8080:80"
 
-  backend:
-    build: ./backend
+  # REST API: auth, link management, QR codes, stats. Does not serve short links itself.
+  api:
+    build: ./services/api
     restart: unless-stopped
     depends_on:
       db:
@@ -45,21 +47,40 @@ services:
       DATABASE_URL: mysql://root:rootpassword@db:3306/short_url
       JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
       FRONTEND_URL: http://localhost:3000
-      PUBLIC_BASE_URL: http://localhost:4000
+      REDIRECT_BASE_URL: http://localhost:4002
       PORT: 4000
       COOKIE_SECURE: "false"  # plain http on localhost
     ports:
       - "4000:4000"
 
+  # Public short-link redirects + the unlock form for password-protected links. Scales and
+  # deploys independently of the api service above; it shares the same database but never
+  # calls the api service directly.
+  redirect:
+    build: ./services/redirect
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://root:rootpassword@db:3306/short_url
+      FRONTEND_URL: http://localhost:3000
+      PORT: 4002
+    ports:
+      - "4002:4002"
+
   frontend:
     build:
       context: ./frontend
       args:
-        # Where the Next.js server forwards /api/* (the backend's address inside Docker)
-        API_URL: http://backend:4000
+        # Where the Next.js server forwards /api/* (api service) and /api/public/* (redirect
+        # service) — the backends' addresses inside Docker's network
+        API_URL: http://api:4000
+        REDIRECT_API_URL: http://redirect:4002
     restart: unless-stopped
     depends_on:
-      - backend
+      - api
+      - redirect
     ports:
       - "3000:3000"
 
